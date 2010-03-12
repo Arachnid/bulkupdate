@@ -38,7 +38,7 @@ class KeyProperty(db.Property):
 
 
 def timedelta_to_seconds(delta):
-  return delta.days * 86400 + delta.seconds
+  return delta.days * 86400.0 + delta.seconds
 
 
 def human_timedelta(ts):
@@ -143,7 +143,7 @@ class Status(db.Model):
   total_runtime = property(lambda self: human_timedelta(self.elapsed_time))
 
   elapsed_seconds = property(
-      lambda self: timedelta_to_seconds(self.elapsed_time) / 60.0)
+      lambda self: timedelta_to_seconds(self.elapsed_time))
   processing_rate = rate_property(num_processed, elapsed_seconds)
   error_rate = rate_property(num_errors, elapsed_seconds)
   put_rate = rate_property(num_put, elapsed_seconds)
