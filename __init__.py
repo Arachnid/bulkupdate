@@ -22,7 +22,7 @@ class BulkUpdater(object):
   PUT_BATCH_SIZE = 20
   
   # Number of entities to delete() at once.
-  DELETE_BATCH_SIZE = 20
+  DELETE_BATCH_SIZE = 500
   
   # Maximum time to spend processing before enqueueing the next task in seconds.
   MAX_EXECUTION_TIME = 20.0

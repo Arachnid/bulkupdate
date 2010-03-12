@@ -127,7 +127,7 @@ class Status(db.Model):
   last_update_delta = property(lambda self: human_timedelta(self.last_update))
 
   def _calculate_rate(self, value):
-    elapsed = float(timedelta_to_seconds(self.last_update - self.start_time)/60)
+    elapsed = timedelta_to_seconds(self.last_update - self.start_time) / 60.0
     if elapsed == 0:
       return "-"
     return "%.1f" % (value / elapsed,)
