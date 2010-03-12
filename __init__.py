@@ -225,8 +225,8 @@ class BulkUpdater(object):
 
 
 class BulkPut(BulkUpdater):
-  def __init__(self, query, email_sender=None):
-    super(BulkPut, self).__init__(email_sender)
+  def __init__(self, query):
+    super(BulkPut, self).__init__()
     self.query = query
 
   def get_query(self):
@@ -237,8 +237,8 @@ class BulkPut(BulkUpdater):
 
 
 class BulkDelete(BulkUpdater):
-  def __init__(self, query, email_sender=None):
-    super(BulkDelete, self).__init__(email_sender)
+  def __init__(self, query):
+    super(BulkDelete, self).__init__()
     self.query = query
 
   def get_query(self):
