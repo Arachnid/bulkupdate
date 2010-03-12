@@ -1,0 +1,57 @@
+<html>
+<head>
+  <title>Bulk update job listing</title>
+</head>
+<body>
+  <h1>Bulk update job listing</h1>
+  
+  {% if running %}
+    <h2>Running Jobs</h2>
+    <table>
+      <tr><th>ID</th><th>Started</th><th>Last update</th><th>Records processed</th><th>Actions</th></tr>
+      {% for job in running %}
+        <tr>
+          <td><a href="{{base_url}}status?id={{job.key.id}}">{{job.key.id}}</a></td>
+          <td>{{job.start_time_delta}} ago</td>
+          <td>{{job.last_update_delta}} ago</td>
+          <td>{{job.num_processed}}</td>
+          <td>
+            <form method="POST" action="{{base_url}}/status?id={{job.key.id}}&continue={{base_url|escape}}">
+              <input type="hidden" name="state" value="3" />
+              <input type="submit" value="Cancel Job" />
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+
+  {% if completed %}
+    <h2>Stopped Jobs</h2>
+    <table>
+      <tr><th>ID</th><th>Started</th><th>Stopped</th><th>Records processed</th><th>State</th><th>Actions</th></tr>
+      {% for job in completed %}
+        <tr>
+          <td><a href="{{base_url}}status?id={{job.key.id}}">{{job.key.id}}</a></td>
+          <td>{{job.start_time_delta}} ago</td>
+          <td>{{job.last_update_delta}} ago</td>
+          <td>{{job.num_processed}}</td>
+          <td>{{job.state_name}}</td>
+          {% if not job.is_deleting %}
+            <td>
+              <form method="POST" action="{{base_url}}/status?id={{job.key.id}}&continue={{base_url|escape}}">
+                <input type="hidden" name="state" value="5" />
+                <input type="submit" value="Delete Job" />
+              </form>
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+  
+  {% if not running and not completed %}
+    <p>No jobs.</p>
+  {% endif %}
+</body>
+</html>

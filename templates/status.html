@@ -1,0 +1,75 @@
+<html>
+<head>
+  <title>Status for job with ID {{job.key.id}}</title>
+</head>
+<body>
+  <h1>Status for job with ID {{job.key.id}}</h1>
+  
+  <h2>Overview</h2>
+  <table>
+    <tr><th>State</th><td>{{job.state_name}}</td></tr>
+    <tr><th>Started</th><td>{{job.start_time_delta}} ago</td></tr>
+    {% if job.is_running %}
+      <tr><th>Last update</th><td>{{job.last_update_delta}} ago</td></tr>
+    {% else %}
+      <tr><th>Stopped</th><td>{{job.last_update_delta}} ago</td></tr>
+    {% endif %}
+  </table>
+  
+  {% if job.is_running %}
+    <form method="POST" action="{{base_url}}&continue={{base_url|escape}}">
+      <input type="hidden" name="state" value="3" />
+      <input type="submit" value="Cancel Job" />
+    </form>
+  {% endif %}
+  {% if not job.is_running and not job.is_deleting %}
+    <form method="POST" action="{{base_url}}&continue={{base_url|escape}}">
+      <input type="hidden" name="state" value="5" />
+      <input type="submit" value="Delete Job" />
+    </form>
+  {% endif %}
+  
+  <h2>Progress</h2>
+  <table>
+    <tr>
+      <th></th>
+      <th>Processed</th>
+      <th>Errors</th>
+      <th>Puts</th>
+      <th>Deletes</th>
+      <th>Tasks</th>
+    </tr>
+    <tr>
+      <th>Total</th>
+      <td>{{job.num_processed}}</td>
+      <td>{{job.num_errors}}</td>
+      <td>{{job.num_put}}</td>
+      <td>{{job.num_deleted}}</td>
+      <td>{{job.num_tasks}}</td>
+    </tr>
+    <tr>
+      <th>Per minute</th>
+      <td>{{job.processing_rate}}</td>
+      <td>{{job.error_rate}}</td>
+      <td>{{job.put_rate}}</td>
+      <td>{{job.delete_rate}}</td>
+      <td>{{job.task_rate}}</td>
+    </tr>
+  </table>
+  
+  <h2>Messages</h2>
+  <table>
+    <tr><th>Task ID</th><th>Key</th><th>When</th></tr>
+    {% for message in job.log_entries %}
+      <tr>
+        <td>{{message.task_id}}</td>
+        <td>{{message.log_key|stringformat:"r"}}</td>
+        <td>{{message.timestamp_delta}} ago</td>
+      </tr>
+      <tr>
+        <td colspan="3"><pre>{{message.message}}</pre></td>
+      </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>
