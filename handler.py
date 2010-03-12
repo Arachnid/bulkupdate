@@ -47,6 +47,8 @@ class JobStatusHandler(BaseHandler):
     job = self.get_job()
     if not job: return
     
+    import logging
+    logging.warn(job.processing_rate)
     self.render_template('status.html', {
         'job': job,
         'base_url': self.request.url,

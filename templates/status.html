@@ -38,6 +38,7 @@
       <th>Puts</th>
       <th>Deletes</th>
       <th>Tasks</th>
+      <th>Time</th>
     </tr>
     <tr>
       <th>Total</th>
@@ -46,14 +47,25 @@
       <td>{{job.num_put}}</td>
       <td>{{job.num_deleted}}</td>
       <td>{{job.num_tasks}}</td>
+      <td>{{job.total_runtime}}</td>
     </tr>
     <tr>
-      <th>Per minute</th>
+      <th>Per second</th>
       <td>{{job.processing_rate}}</td>
       <td>{{job.error_rate}}</td>
       <td>{{job.put_rate}}</td>
       <td>{{job.delete_rate}}</td>
       <td>{{job.task_rate}}</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <th>Per task</th>
+      <td>{{job.task_processing_rate}}</td>
+      <td>{{job.task_error_rate}}</td>
+      <td>{{job.task_put_rate}}</td>
+      <td>{{job.task_delete_rate}}</td>
+      <td>-</td>
+      <td>{{job.task_time}} seconds</td>
     </tr>
   </table>
   

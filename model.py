@@ -42,7 +42,10 @@ def timedelta_to_seconds(delta):
 
 
 def human_timedelta(ts):
-  delta = datetime.datetime.now() - ts
+  if isinstance(ts, datetime.datetime):
+    delta = datetime.datetime.now() - ts
+  else:
+    delta = ts
   elapsed = float(timedelta_to_seconds(delta))
   if elapsed <= 90:
     return "%d seconds" % (elapsed,)
@@ -72,6 +75,17 @@ def _delete_job(key):
 
   # Delete the entity itself
   db.delete(key)
+
+
+def rate_property(rise_prop, run_prop):
+  def ratefunc(self):
+    rise = rise_prop.__get__(self, type(self))
+    run = run_prop.__get__(self, type(self))
+    if not run_prop:
+      return '-'
+    else:
+      return '%.1f' % (rise/float(run),)
+  return property(ratefunc)
 
 
 class Status(db.Model):
@@ -123,20 +137,24 @@ class Status(db.Model):
   def is_deleting(self):
     return self.state == Status.STATE_DELETING
 
+  elapsed_time = property(lambda self: self.last_update - self.start_time)
   start_time_delta = property(lambda self: human_timedelta(self.start_time))
   last_update_delta = property(lambda self: human_timedelta(self.last_update))
+  total_runtime = property(lambda self: human_timedelta(self.elapsed_time))
 
-  def _calculate_rate(self, value):
-    elapsed = timedelta_to_seconds(self.last_update - self.start_time) / 60.0
-    if elapsed == 0:
-      return "-"
-    return "%.1f" % (value / elapsed,)
+  elapsed_seconds = property(
+      lambda self: timedelta_to_seconds(self.elapsed_time) / 60.0)
+  processing_rate = rate_property(num_processed, elapsed_seconds)
+  error_rate = rate_property(num_errors, elapsed_seconds)
+  put_rate = rate_property(num_put, elapsed_seconds)
+  delete_rate = rate_property(num_deleted, elapsed_seconds)
+  task_rate = rate_property(num_tasks, elapsed_seconds)
 
-  processing_rate = property(lambda self: self._calculate_rate(self.num_processed))
-  error_rate = property(lambda self: self._calculate_rate(self.num_errors))
-  put_rate = property(lambda self: self._calculate_rate(self.num_put))
-  delete_rate = property(lambda self: self._calculate_rate(self.num_deleted))
-  task_rate = property(lambda self: self._calculate_rate(self.num_tasks))
+  task_processing_rate = rate_property(num_processed, num_tasks)
+  task_error_rate = rate_property(num_errors, num_tasks)
+  task_put_rate = rate_property(num_put, num_tasks)
+  task_delete_rate = rate_property(num_deleted, num_tasks)
+  task_time = rate_property(elapsed_seconds, num_tasks)
 
   def delete(self):
     defer(_delete_job, self.key())
