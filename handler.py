@@ -47,11 +47,26 @@ class JobStatusHandler(BaseHandler):
     job = self.get_job()
     if not job: return
     
-    import logging
-    logging.warn(job.processing_rate)
+    start = int(self.request.GET.get('start', 0))
+    count = int(self.request.GET.get('count', 20))
+    try:
+      messages = job.log_entries.order('-timestamp').fetch(count, start)
+      need_index = False
+    except db.NeedIndexError:
+      messages = job.log_entries.fetch(count, start)
+      need_index = True
+
     self.render_template('status.html', {
         'job': job,
         'base_url': self.request.url,
+        'listing_url': self.request.url.rsplit('/', 1)[0],
+        'messages': messages,
+        'need_index': need_index,
+        'start': start,
+        'end': start + len(messages) - 1,
+        'prev_start': max(0, start - count),
+        'next_start': start + count if len(messages) == count else None,
+        'count': count,
     })
 
   def post(self):

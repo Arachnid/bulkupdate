@@ -5,6 +5,8 @@
 <body>
   <h1>Status for job with ID {{job.key.id}}</h1>
   
+  <p><a href="{{listing_url}}/">Return to job listing</a></p>
+  
   <h2>Overview</h2>
   <table>
     <tr><th>State</th><td>{{job.state_name}}</td></tr>
@@ -23,7 +25,7 @@
     </form>
   {% endif %}
   {% if not job.is_running and not job.is_deleting %}
-    <form method="POST" action="{{base_url}}&continue={{base_url|escape}}">
+    <form method="POST" action="{{base_url}}&continue={{listing_url|escape}}/">
       <input type="hidden" name="state" value="5" />
       <input type="submit" value="Delete Job" />
     </form>
@@ -70,18 +72,40 @@
   </table>
   
   <h2>Messages</h2>
-  <table>
-    <tr><th>Task ID</th><th>Key</th><th>When</th></tr>
-    {% for message in job.log_entries %}
-      <tr>
-        <td>{{message.task_id}}</td>
-        <td>{{message.log_key|stringformat:"r"}}</td>
-        <td>{{message.timestamp_delta}} ago</td>
-      </tr>
-      <tr>
-        <td colspan="3"><pre>{{message.message}}</pre></td>
-      </tr>
-    {% endfor %}
-  </table>
+  {% if messages or start %}
+    <p>Showing {{start}} to {{end}}</p>
+    <table>
+      <tr><th>Task ID</th><th>Key</th><th>When</th></tr>
+      {% for message in messages %}
+        <tr>
+          <td>{{message.task_id}}</td>
+          <td>{{message.log_key|stringformat:"r"}}</td>
+          <td>{{message.timestamp_delta}} ago</td>
+        </tr>
+        <tr>
+          <td colspan="3"><pre>{{message.message}}</pre></td>
+        </tr>
+      {% endfor %}
+    </table>
+    <p>
+      {% if start %}
+        <a href="?id={{job.key.id}}&amp;start={{prev_start}}&amp;count={{count}}">Previous {{count}}</a>
+      {% endif %}
+      {% if next_start %}
+        <a href="?id={{job.key.id}}&amp;start={{next_start}}&amp;count={{count}}">Next {{count}}</a>
+      {% endif %}
+    </p>
+    {% if need_index %}
+      <p><em>Note: Messages are sorted in ascending order by timestamp. To enable
+      sorting in descending order, add the following index to your index.yaml:</em></p>
+      <pre>- kind: __bulkupdate_LogEntry
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc</pre>
+    {% endif %}
+  {% else %}
+    <p><em>No messages logged for this job.</em></p>
+  {% endif %}
 </body>
 </html>

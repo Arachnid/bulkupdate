@@ -152,9 +152,9 @@ class BulkUpdater(object):
                           entity.key())
         self.handle_exception()
         if self.MAX_FAILURES >= 0:
-          if len(self._status.failed_keys) > self.MAX_FAILURES:
+          if self._status.num_errors > self.MAX_FAILURES:
             # Update completed (failure)
-            self._status.state = model.Status.STATUS_FAILURE
+            self._status.state = model.Status.STATE_FAILED
             return True
       
       self._status.num_processed += 1
@@ -163,6 +163,7 @@ class BulkUpdater(object):
         return False
     
     # The loop finished - we're done!
+    self._status.state = model.Status.STATE_COMPLETED
     return True
 
   def run(self, _start_cursor=None):
@@ -197,15 +198,16 @@ class BulkUpdater(object):
       db.put(self.__to_put)
     if self.__to_delete:
       db.delete(self.__to_delete)
+
+    log_entries = self.__log_entries
+    self.__log_entries = []
         
     if finished:
       logging.info(
           "Processed %d entities in %d tasks, putting %d and deleting %d",
           status.num_processed, status.num_tasks, status.num_put,
           status.num_deleted)
-      status.state = model.Status.STATE_COMPLETED
-      self.finish(len(status.failed_keys) <= self.MAX_FAILURES
-                  or self.MAX_FAILURES == -1,
+      self.finish(status.state == model.Status.STATE_COMPLETED,
                   status)
     else:
       self.__to_put = []
@@ -216,7 +218,8 @@ class BulkUpdater(object):
 
     status.num_tasks += 1
     status.last_update = datetime.datetime.now()
-    db.put([status] + self.__log_entries)
+    log_entries.append(status)
+    db.put(log_entries)
 
   def start(self):
     """Starts a BulkUpdater in a deferred task."""
