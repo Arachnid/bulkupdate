@@ -1,111 +1,132 @@
 <html>
 <head>
   <title>Status for job with ID {{job.key.id}}</title>
+  <style type="text/css">
+    h2 {
+      margin-top: 0;
+      padding-top: 0;
+    }
+    .messagerow td {
+      padding-bottom: 2em;
+    }
+    .even {
+      background-color: #eee;
+    }
+    #progresstable td {
+      text-align: right;
+    }
+  </style>
 </head>
 <body>
   <h1>Status for job with ID {{job.key.id}}</h1>
   
   <p><a href="{{listing_url}}/">Return to job listing</a></p>
   
-  <h2>Overview</h2>
-  <table>
-    <tr><th>State</th><td>{{job.state_name}}</td></tr>
-    <tr><th>Started</th><td>{{job.start_time_delta}} ago</td></tr>
-    {% if job.is_running %}
-      <tr><th>Last update</th><td>{{job.last_update_delta}} ago</td></tr>
-    {% else %}
-      <tr><th>Stopped</th><td>{{job.last_update_delta}} ago</td></tr>
-    {% endif %}
-  </table>
-  
-  {% if job.is_running %}
-    <form method="POST" action="{{base_url}}&continue={{base_url|escape}}">
-      <input type="hidden" name="state" value="3" />
-      <input type="submit" value="Cancel Job" />
-    </form>
-  {% endif %}
-  {% if not job.is_running and not job.is_deleting %}
-    <form method="POST" action="{{base_url}}&continue={{listing_url|escape}}/">
-      <input type="hidden" name="state" value="5" />
-      <input type="submit" value="Delete Job" />
-    </form>
-  {% endif %}
-  
-  <h2>Progress</h2>
-  <table>
-    <tr>
-      <th></th>
-      <th>Processed</th>
-      <th>Errors</th>
-      <th>Puts</th>
-      <th>Deletes</th>
-      <th>Tasks</th>
-      <th>Time</th>
-    </tr>
-    <tr>
-      <th>Total</th>
-      <td>{{job.num_processed}}</td>
-      <td>{{job.num_errors}}</td>
-      <td>{{job.num_put}}</td>
-      <td>{{job.num_deleted}}</td>
-      <td>{{job.num_tasks}}</td>
-      <td>{{job.total_runtime}}</td>
-    </tr>
-    <tr>
-      <th>Per second</th>
-      <td>{{job.processing_rate}}</td>
-      <td>{{job.error_rate}}</td>
-      <td>{{job.put_rate}}</td>
-      <td>{{job.delete_rate}}</td>
-      <td>{{job.task_rate}}</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <th>Per task</th>
-      <td>{{job.task_processing_rate}}</td>
-      <td>{{job.task_error_rate}}</td>
-      <td>{{job.task_put_rate}}</td>
-      <td>{{job.task_delete_rate}}</td>
-      <td>-</td>
-      <td>{{job.task_time}} seconds</td>
-    </tr>
-  </table>
-  
-  <h2>Messages</h2>
-  {% if messages or start %}
-    <p>Showing {{start}} to {{end}}</p>
+  <div style="float: left; width: 50%;">
+    <h2>Overview</h2>
     <table>
-      <tr><th>Task ID</th><th>Key</th><th>When</th></tr>
-      {% for message in messages %}
-        <tr>
-          <td>{{message.task_id}}</td>
-          <td>{{message.log_key|stringformat:"r"}}</td>
-          <td>{{message.timestamp_delta}} ago</td>
-        </tr>
-        <tr>
-          <td colspan="3"><pre>{{message.message}}</pre></td>
-        </tr>
-      {% endfor %}
+      <tr><th>State</th><td>{{job.state_name}}</td></tr>
+      <tr><th>Started</th><td>{{job.start_time_delta}} ago</td></tr>
+      {% if job.is_running %}
+        <tr><th>Last update</th><td>{{job.last_update_delta}} ago</td></tr>
+      {% else %}
+        <tr><th>Stopped</th><td>{{job.last_update_delta}} ago</td></tr>
+      {% endif %}
     </table>
-    <p>
-      {% if start %}
-        <a href="?id={{job.key.id}}&amp;start={{prev_start}}&amp;count={{count}}">Previous {{count}}</a>
-      {% endif %}
-      {% if next_start %}
-        <a href="?id={{job.key.id}}&amp;start={{next_start}}&amp;count={{count}}">Next {{count}}</a>
-      {% endif %}
-    </p>
-    {% if need_index %}
-      <p><em>Note: Messages are sorted in ascending order by timestamp. To enable
-      sorting in descending order, add the following index to your index.yaml:</em></p>
-      <pre>- kind: __bulkupdate_LogEntry
-  ancestor: yes
-  properties:
-  - name: timestamp
-    direction: desc</pre>
+  
+    {% if job.is_running %}
+      <form method="POST" action="{{base_url}}&continue={{base_url|escape}}">
+        <input type="hidden" name="state" value="3" />
+        <input type="submit" value="Cancel Job" />
+      </form>
     {% endif %}
-  {% else %}
-    <p><em>No messages logged for this job.</em></p>
-  {% endif %}
+    {% if not job.is_running and not job.is_deleting %}
+      <form method="POST" action="{{base_url}}&continue={{listing_url|escape}}/">
+        <input type="hidden" name="state" value="5" />
+        <input type="submit" value="Delete Job" />
+      </form>
+    {% endif %}
+  </div>
+  
+  <div>
+    <h2>Progress</h2>
+    <table id="progresstable">
+      <tr>
+        <th></th>
+        <th>Processed</th>
+        <th>Errors</th>
+        <th>Puts</th>
+        <th>Deletes</th>
+        <th>Tasks</th>
+        <th>Time</th>
+      </tr>
+      <tr>
+        <th>Total</th>
+        <td>{{job.num_processed|stringformat:".1f"}}</td>
+        <td>{{job.num_errors|stringformat:".1f"}}</td>
+        <td>{{job.num_put|stringformat:".1f"}}</td>
+        <td>{{job.num_deleted|stringformat:".1f"}}</td>
+        <td>{{job.num_tasks|stringformat:".1f"}}</td>
+        <td>{{job.total_runtime}}</td>
+      </tr>
+      <tr>
+        <th>Per second</th>
+        <td>{{job.processing_rate}}</td>
+        <td>{{job.error_rate}}</td>
+        <td>{{job.put_rate}}</td>
+        <td>{{job.delete_rate}}</td>
+        <td>{{job.task_rate}}</td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <th>Per task</th>
+        <td>{{job.task_processing_rate}}</td>
+        <td>{{job.task_error_rate}}</td>
+        <td>{{job.task_put_rate}}</td>
+        <td>{{job.task_delete_rate}}</td>
+        <td>-</td>
+        <td>{{job.task_time}} seconds</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="clear: both;">
+    <h2>Messages</h2>
+    {% if messages or start %}
+      <p>Showing {{start}} to {{end}}</p>
+      <table>
+        <tr><th>Task ID</th><th>Key</th><th>When</th></tr>
+        {% for message in messages %}
+          <tr{% if forloop.counter|divisibleby:2 %} class="even"{% endif %}>
+            <td>{{message.task_id}}</td>
+            <td>{{message.log_key|stringformat:"r"}}</td>
+            <td>{{message.timestamp_delta}} ago</td>
+          </tr>
+          <tr class="messagerow{% if forloop.counter|divisibleby:2 %} even{% endif %}">
+            <td colspan="3"><pre>{{message.message}}</pre></td>
+          </tr>
+        {% endfor %}
+      </table>
+      <p>
+        {% if start %}
+          <a href="?id={{job.key.id}}&amp;start={{prev_start}}&amp;count={{count}}">Previous {{count}}</a>
+        {% endif %}
+        {% if next_start %}
+          <a href="?id={{job.key.id}}&amp;start={{next_start}}&amp;count={{count}}">Next {{count}}</a>
+        {% endif %}
+      </p>
+      {% if need_index %}
+        <p><em>Note: Messages are sorted in ascending order by timestamp. To enable
+        sorting in descending order, add the following index to your index.yaml:</em></p>
+        <pre>- kind: __bulkupdate_LogEntry
+    ancestor: yes
+    properties:
+    - name: timestamp
+      direction: desc</pre>
+      {% endif %}
+    {% else %}
+      <p><em>No messages logged for this job.</em></p>
+    {% endif %}
+  </div>
 </body>
 </html>
