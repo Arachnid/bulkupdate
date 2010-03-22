@@ -31,7 +31,16 @@ class BulkUpdater(object):
   # Maximum number of failures to tolerate before aborting. -1 indicates
   # no limit, in which case the list of failed keys will not be retained.
   MAX_FAILURES = 0
-  
+
+  # Time interval after which to garbage collect records of finished jobs.
+  # Set to -1 to disable deletion of completed jobs, or 0 to delete completed
+  # jobs immediately.
+  DELETE_COMPLETED_JOB_DELAY = 60 * 60 * 24
+
+  # If True, deletes records for failed jobs after DELETE_COMPLETED_JOB_DELAY.
+  # If False, only successful jobs are deleted.
+  DELETE_FAILED_JOBS = True
+
   def __init__(self):
     self.__to_put = []
     self.__to_delete = []
@@ -140,7 +149,10 @@ class BulkUpdater(object):
     """
     end_time = time.time() + self.MAX_EXECUTION_TIME
     for entity in q:
-      self.current_key = entity.key()
+      if isinstance(entity, db.Key):
+        self.current_key = entity
+      else:
+        self.current_key = entity.key()
       try:
         self.handle_entity(entity)
       except (db.Timeout, apiproxy_errors.CapabilityDisabledError,
@@ -150,7 +162,7 @@ class BulkUpdater(object):
       except Exception, e:
         # User exception - log and (perhaps) continue.
         logging.exception("Exception occurred while processing entity %r",
-                          entity.key())
+                          self.current_key)
         self.handle_exception()
         if self.MAX_FAILURES >= 0:
           if self._status.num_errors > self.MAX_FAILURES:
@@ -225,6 +237,10 @@ class BulkUpdater(object):
           status.num_deleted)
       self.finish(status.state == model.Status.STATE_COMPLETED,
                   status)
+      if self.DELETE_COMPLETED_JOB_DELAY != -1:
+        if (status.state == model.Status.STATE_COMPLETED
+            or self.DELETE_FAILED_JOBS):
+          self._status.delete(_countdown=self.DELETE_COMPLETED_JOB_DELAY)
     else:
       self.__to_put = []
       self.__to_delete = []
