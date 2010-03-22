@@ -206,6 +206,22 @@ setting it to -1 prevents job information records from being deleted at all.
 *DELETE_FAILED_JOBS* - Default True. If True, all job records are deleted after
 DELETE_COMPLETED_JOB_DELAY. If False, only successful job records are deleted.
 
+*Note on task execution time*: As with all requests on App Engine, Task Queue
+tasks are limited to 30 seconds of execution time. The bulkupdate library
+handles this for you automatically, but you need to be aware of the implications
+of changing the PUT_BATCH_SIZE, DELETE_BATCH_SIZE, and MAX_EXECUTION_TIME
+parameters.
+
+After each entity processed, the BulkUpdater checks if the execution time of
+the current task is greater than MAX_EXECUTION_TIME. If it is, it performs put()
+and delete() operations for any entities that have not yet been stored, then
+enqueues the next task, and returns. As a result, it's really important that
+if you're modifying any of the three parameters above, you make sure they
+interact well: It must be possible to put and delete an entire batch worth of
+entities, as well as enqueueing the next task, in the time that remains after
+MAX_EXECUTION_TIME has elapsed. As a result, setting MAX_EXECUTION_TIME to 29.0
+seconds, and *_BATCH_SIZE to the maximum of 500, would be unwise.
+
 ### Methods
 
 #### get_query()
