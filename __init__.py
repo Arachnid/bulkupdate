@@ -5,6 +5,7 @@ import time
 import traceback
 from google.appengine.api import mail
 from google.appengine.api import memcache
+from google.appengine.api.labs import taskqueue
 from google.appengine.ext import db
 from google.appengine.ext.deferred import defer
 from google.appengine.runtime import apiproxy_errors
@@ -166,6 +167,18 @@ class BulkUpdater(object):
     self._status.state = model.Status.STATE_COMPLETED
     return True
 
+  def _get_task_name(self):
+    return "-bulkupdate-%s-task-%d" % (self._status.key().id_or_name(),
+                                       self.task_id)
+
+
+  def _defer_by_name(self, name, func, *args, **kwargs):
+    """Defers a named task, ignoring failures due to already-used names."""
+    try:
+      defer(func, _name=name, *args, **kwargs)
+    except (taskqueue.TaskAlreadyExistsError, taskqueue.TombstonedTaskError), e:
+      pass
+
   def run(self, _start_cursor=None):
     """Begins or continues a batch update process."""
     status = self._status
@@ -184,6 +197,9 @@ class BulkUpdater(object):
     if not status.is_running:
       logging.warn("Terminating cancelled job.")
       return
+
+    logging.info("This is task %d for bulkupdate job %r",
+                 self.task_id, self._status.key())
 
     q = self.get_query()
     if _start_cursor:
@@ -214,7 +230,7 @@ class BulkUpdater(object):
       self.__to_delete = []
       self.task_id += 1
       self.current_key = None
-      defer(self.run, q.cursor())
+      self._defer_by_name(self._get_task_name(), self.run, q.cursor())
 
     status.num_tasks += 1
     status.last_update = datetime.datetime.now()
@@ -223,7 +239,8 @@ class BulkUpdater(object):
 
   def start(self):
     """Starts a BulkUpdater in a deferred task."""
-    defer(self.run)
+    self._status.put()
+    self._defer_by_name(self._get_task_name(), self.run)
     return self._status.key()
 
 
