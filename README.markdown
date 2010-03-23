@@ -206,6 +206,12 @@ setting it to -1 prevents job information records from being deleted at all.
 *DELETE_FAILED_JOBS* - Default True. If True, all job records are deleted after
 DELETE_COMPLETED_JOB_DELAY. If False, only successful job records are deleted.
 
+*QUEUE_NAME* - Default None. The name of the Task Queue queue to use. If left
+as None, the default queue is used.
+
+*QUEUE_URL* - Default None. The URL of the handler to use. If left as None, the
+default deferred handler URL is used.
+
 *Note on task execution time*: As with all requests on App Engine, Task Queue
 tasks are limited to 30 seconds of execution time. The bulkupdate library
 handles this for you automatically, but you need to be aware of the implications

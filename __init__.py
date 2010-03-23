@@ -41,6 +41,12 @@ class BulkUpdater(object):
   # If False, only successful jobs are deleted.
   DELETE_FAILED_JOBS = True
 
+  # Name of queue to use. Defaults to the default queue.
+  QUEUE_NAME = None
+
+  # URL of task queue handler. Defaults to the default deferred handler location
+  QUEUE_URL = None
+
   def __init__(self):
     self.__to_put = []
     self.__to_delete = []
@@ -139,7 +145,7 @@ class BulkUpdater(object):
         log_key=self.current_key,
         message=message))
 
-  def __process_entities(self, q):
+  def _process_entities(self, q):
     """Processes a batch of entities.
     
     Args:
@@ -184,14 +190,18 @@ class BulkUpdater(object):
                                        self.task_id)
 
 
-  def _defer_by_name(self, name, func, *args, **kwargs):
-    """Defers a named task, ignoring failures due to already-used names."""
+  def _defer_run(self, *args, **kwargs):
+    """Defers the next task, ignoring failures due to already-used names."""
+    if self.QUEUE_NAME:
+      kwargs['_queue'] = self.QUEUE_NAME
+    if self.QUEUE_URL:
+      kwargs['_url'] = self.QUEUE_URL
     try:
-      defer(func, _name=name, *args, **kwargs)
+      defer(self._run, _name=self._get_task_name(), *args, **kwargs)
     except (taskqueue.TaskAlreadyExistsError, taskqueue.TombstonedTaskError), e:
       pass
 
-  def run(self, _start_cursor=None):
+  def _run(self, _start_cursor=None):
     """Begins or continues a batch update process."""
     status = self._status
     
@@ -217,7 +227,7 @@ class BulkUpdater(object):
     if _start_cursor:
       q.with_cursor(_start_cursor)
     
-    finished = self.__process_entities(q)
+    finished = self._process_entities(q)
     
     self.current_key = None
     
@@ -246,7 +256,7 @@ class BulkUpdater(object):
       self.__to_delete = []
       self.task_id += 1
       self.current_key = None
-      self._defer_by_name(self._get_task_name(), self.run, q.cursor())
+      self._defer_run(q.cursor())
 
     status.num_tasks += 1
     status.last_update = datetime.datetime.now()
@@ -256,7 +266,7 @@ class BulkUpdater(object):
   def start(self):
     """Starts a BulkUpdater in a deferred task."""
     self._status.put()
-    self._defer_by_name(self._get_task_name(), self.run)
+    self._defer_run()
     return self._status.key()
 
 
