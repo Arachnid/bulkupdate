@@ -17,7 +17,8 @@ Installation consists of 3 steps, one of which is optional.
 
 ### 1. Installing the library
 
-Download a copy of the library, or check it out from git, and install it in a
+[Download](http://github.com/downloads/Arachnid/bulkupdate/bulkupdate-0.1.tgz)
+a copy of the library, or check it out from git, and install it in a
 directory named 'bulkupdate', directly off your application's root directory.
 
 ### 2. Installing the deferred handler
